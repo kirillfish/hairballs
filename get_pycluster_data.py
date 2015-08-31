@@ -23,161 +23,6 @@ try:
 except:
     print "Warning: pathos.multiprocessing not imported. Parallel algorithms will be unavailable."
 
-# DEPRECATED
-def networkX_to_Giraph(graph=None, filepathGraph=None, outputFormat='VertexInputFormat',
-                       filepathOutput=None, extension='txt'):
-    '''
-    Function that converts networkX graph into the format apt for Apache Giraph
-    '''
-
-    if graph == None:
-        print "loading the graph..."
-        graph = pickle.load(open(filepathGraph, 'r'))
-
-    if outputFormat == 'VertexInputFormat':
-        output = {}
-        nodeIntMap = {}
-
-        print "creating additional data structures..."
-        edgeData = ( edge[2]['weight'] for edge in graph.edges(data=True) )
-        edgeDict = dict(zip(graph.edges(), edgeData))
-
-        print "initialising output..."
-        for ID, node in enumerate(graph.nodes()):
-            output[ID] = [ID, 1., []]
-            nodeIntMap[node] = ID
-
-        # only one edge from (node, nei) and (nei, node) is found, but loop
-        # gets each of them once -- that's OK
-        print "filling output with edges..."
-        for ID, node in enumerate(graph.nodes()):
-            for nei in graph.neighbors(node):
-                if (node, nei) in edgeDict:
-                    output[ID][2].append([nodeIntMap[nei], edgeDict[(node, nei)]])
-
-        if filepathOutput == None:
-            filepathOutput = "GIRAPH_" + VersionTime
-
-        filepathNodeInt = "NODEINTMAP_" + VersionTime
-
-        if extension == 'txt':
-            f = open(filepathOutput, 'w')
-            for ID in output:
-                f.write("%s\n" % str(output[ID]).encode('utf-8'))
-            f.close()
-            print "giraph saved: ", filepathOutput
-            print "format: ", outputFormat
-            json.dump(nodeIntMap, open(filepathNodeInt, 'w'))
-            print "nodeIntMap saved: ", filepathNodeInt
-
-        elif extension == 'json':
-            json.dump(output.values(), open(filepathOutput, 'w'))
-            print "giraph saved: ", filepathOutput
-            print "format: ", outputFormat
-            json.dump(nodeIntMap, open(filepathNodeInt, 'w'))
-            print "nodeIntMap saved: ", filepathNodeInt
-
-        else:
-            print "Warning: output not written in file"
-
-        forreturn = {'nodeIntMap': nodeIntMap, 'output': output}
-        return forreturn
-
-    elif outputFormat == 'SpinnerEdgeInputFormat':
-        nodeIntMap = {}
-
-        print "initialising output..."
-        for ID, node in enumerate(graph.nodes()):
-            nodeIntMap[node] = ID
-
-        if filepathOutput == None:
-            filepathOutput = "GIRAPH_" + extension + outputFormat + VersionTime
-
-        if extension == 'txt':
-            f = open(filepathOutput, 'w')
-            for edge in graph.edges():
-                f.write("%s\t%s\n" % ( str(nodeIntMap[edge[0]]),
-                                       str(nodeIntMap[edge[1]]) ))
-            f.close()
-            print "giraph saved: ", filepathOutput
-            print "format: ", outputFormat
-
-            '''
-            elif extension == 'json':
-                json.dump(graph.edges(), open(filepathOutput, 'w'))
-                print "giraph saved: ", filepathOutput
-                print "format: ", outputFormat
-            '''
-
-        else:
-            print "Warning: output not written in file"
-
-        forreturn = {'nodeIntMap': nodeIntMap}
-        return forreturn
-
-    else:
-        print "unknown output format"
-        return 1
-
-
-# DEPRECATED
-def get_paths(data, edgeDict=None, graph=None, algorithm='Floyd', weights='aff',
-              saveResults=False, filepathDist=None):
-    '''
-    a function that computes all pairwise distances (shortest paths)
-    and puts it into a dictionary.
-    Input: graph with edges as distances OR
-    (default) dict with pairwise affinities (not distances)
-    Output: shortest paths in a dict of dicts.
-    '''
-    unmatched = []
-    distGraph = nx.Graph()
-    if weights == 'aff':
-        print "computing 1/affinities..."
-        for i in data:
-            matched = 0
-            if i in edgeDict:
-                distGraph.add_node(i)
-                matched = 1
-                for j in edgeDict[i]:
-                    if edgeDict[i][j] == 0:
-                        distGraph.add_edge(i, j, weight='inf')
-                    else:
-                        distGraph.add_edge(i, j, weight=1.0 / edgeDict[i][j])
-            if matched == 0: unmatched.append(i)
-    elif weights == 'dist':
-        distGraph = graph
-    else:
-        print "Error: weight should be either 'aff' or 'dist'"
-        return 1
-
-    print "number of unmatched nodes: ", len(unmatched)
-    print unmatched
-
-    if algorithm == 'Floyd':
-        print "\ncomputing all shortest paths with Floyd-Warshall algorithm..."
-        dist = nx.floyd_warshall(distGraph)
-        print "pairwise distances obtained"
-    elif algorithm == "Dijkstra":
-        print "\ncomputing all shortest paths with Dijkstra algorithm..."
-        dist = nx.all_pairs_dijkstra_path_length(distGraph)
-        print "pairwise distances obtained"
-    else:
-        print "\nError: cannot recognize what algorithm to use"
-        return 1
-
-    print "num of rows in dist matrix: ", len(dist.keys())
-    # print dist.keys()
-
-    if saveResults:
-        if filepathDist == None:
-            #filepathDist = "/home/krybachuk/SHORTESTPATH_" + VersionTime
-            filepathDist = "SHORTESTPATH_" + "latest"
-        json.dump(dist, open(filepathDist, 'w'))
-        print "shortest path dict saved\n\n"
-
-    return dist
-
 
 class PyclusterGraphConstructor():
     def __init__(self):
@@ -209,6 +54,16 @@ class PyclusterGraphConstructor():
         self.affinities = None
         self.similarities = None
         self.split_files = False  # if similarities computed in parallel are stored piecewise or combined into one file
+
+        self.toExclude = {'ams1.ib.adnxs.com', 'fra1.ib.adnxs.com', 'ib.adnxs.com', 'cache.betweendigital.com',
+                     '&referrer=http:', "&referrer=${referer_url}", 'https:', 'http:', 'masterh1.adriver.ru',
+                     'masterh2.adriver.ru', 'masterh4.adriver.ru', 'masterh5.adriver.ru', 'masterh7.adriver.ru',
+                     'masterh6.adriver.ru', 'mh6.adriver.ru', 'mh8.adriver.ru', 'bel1.adriver.ru', 'un1.adriver.ru',
+                     'cbn2.tbn.ru', 'cdn.etgdta.com', 'delivery.a.switchadhub.com',
+                     'google.ru', 'yandex.ru', 'avito.ru'}
+        self.to_exclude_soft = {'marketgid', 'adfox', 'adriver', 'betweendigital', 'adhub', 'addthis', '--p1ai',
+                                'am15.net'}
+
 
     def get_users(self, file_path=None):
         '''
@@ -257,12 +112,6 @@ class PyclusterGraphConstructor():
         Output: a counter and defaultdict with unfiltered data.
         '''
 
-        toExclude = {'ams1.ib.adnxs.com', 'fra1.ib.adnxs.com', 'ib.adnxs.com', 'cache.betweendigital.com',
-                     '&referrer=http:', "&referrer=${referer_url}", 'https:', 'http:', 'masterh1.adriver.ru',
-                     'masterh2.adriver.ru', 'masterh4.adriver.ru', 'masterh5.adriver.ru', 'masterh7.adriver.ru',
-                     'masterh6.adriver.ru', 'mh6.adriver.ru', 'mh8.adriver.ru', 'bel1.adriver.ru', 'un1.adriver.ru',
-                     'cbn2.tbn.ru', 'cdn.etgdta.com', 'delivery.a.switchadhub.com'}
-
         print "\nextracting domain data from users\n"
         count = 0
         with open(self.users_file_path, 'r') as U:
@@ -289,7 +138,7 @@ class PyclusterGraphConstructor():
         # now domains(nodes) are filtered at the getdomains() stage,
         # not on getaff() !!! But edges are still filtered at getaff()
         self.domains_total = filter(
-            lambda domain: (self.domains_total_raw[domain] >= self.min_users and domain not in toExclude
+            lambda domain: (self.domains_total_raw[domain] >= self.min_users and domain not in self.toExclude
                             and 'adriver' not in domain and 'am15.net' not in domain), self.domains_total_raw)
         self.domains_total = {k: self.domains_total_raw[k] for k in self.domains_total}
         print "total number of domains: ", len(self.domains_total_raw)
@@ -401,8 +250,65 @@ class PyclusterGraphConstructor():
         else:
             return result
 
+    def reprocess_domains(self):
+        """
+        If you call methods by yourself one-by-one, this method is useful
+        when you load precomputed total and common visits and want
+        to filter it once again and then find affinity as before.
+        For instance, suppose you loaded data for a huge graph and want to filter it
+        more severely and obtain smaller graph.
+        """
+        print "loading domain visits statistics..."
+        self.domains_total = {}
+        self.domains_common = defaultdict(lambda: Counter())
+        with open(self.dom_file_path, 'r') as D:
+            for line in D:
+                line = line.strip().split('\t')
+                both_large_enough = 0
+
+                if int(line[2]) >= self.min_users:
+                    both_large_enough += 1
+                    if line[0] not in self.domains_total:
+                        self.domains_total[line[0]] = int(line[2])
+
+                if int(line[3]) >= self.min_users:
+                    both_large_enough += 1
+                    if line[1] not in self.domains_total:
+                        self.domains_total[line[1]] = int(line[3])
+
+                if both_large_enough == 2:
+                    self.domains_common[line[0]][line[1]] = int(line[4])
+
+        domains_total_keys = filter(
+            lambda domain: (domain not in self.toExclude
+                            and all([string not in domain for string in self.to_exclude_soft])), self.domains_total)
+        self.domains_total = {k: self.domains_total[k] for k in domains_total_keys}
+
+        last_slash = self.dom_file_path.rfind('/')
+        old = str(self.dom_file_path)
+        new_path = old[:last_slash+1] + 'new_' + old[last_slash+1:]
+        #new_path = 'new_' + self.dom_file_path
+        out = open(new_path, 'w')
+
+        #f = open('debug', 'w')
+        #f.write(new_path)
+
+        for domainA in self.domains_total:
+            for domainB in self.domains_common[domainA]:
+                try:
+                    out.write("%s\t%s\t%s\t%s\t%s\n" % (domainA.encode('utf-8'),
+                                                        domainB.encode('utf-8'),
+                                                        self.domains_total[domainA.encode('utf-8')],
+                                                        self.domains_total[domainB.encode('utf-8')],
+                                                        self.domains_common[domainA.encode('utf-8')][
+                                                            domainB.encode('utf-8')]))
+                except KeyError:
+                    pass  # print "KeyError occured: ", domainA, domainB
+        out.close()
+        print "domain data saved: ", new_path, "\n\n"
+
     def getaff(self, aff_file_path=None,
-               graph_file_path=None, saveResults=False, return_aff=False):
+               graph_file_path=None, saveResults=True, return_aff=False):
         '''
         Compute affinities, prune out weak ones
         and construct a graph.
@@ -413,7 +319,7 @@ class PyclusterGraphConstructor():
         Nodes and edges are added separately
         (hence, high thresholds on affinity means higher number of isolates)
         '''
-        print "computing affinities, pruning out weak ones and cunstructing a graph"
+        print "computing affinities, pruning out weak ones and constructing a graph"
 
         graph = nx.Graph()
         # affinity data for histograms is not truncated, in order to understand
@@ -427,7 +333,9 @@ class PyclusterGraphConstructor():
             if self.edge_num != None:
                 # selected = [i for i in domains_total if domains_total[i]>=min_users]
                 for domainA in self.domains_total:
-                    for domainB in self.domains_total:  #[i for i in domains_common[domainA] if i in selected]:
+                    #if self.domains_total[domainA] >= self.min_users:
+                    for domainB in self.domains_total:
+                        #if self.domains_total[domainB] >= self.min_users
                         aff = (1.0 * self.domains_common[domainA][domainB] * self.users_count) / \
                               (self.domains_total[domainA] * self.domains_total[domainB])
                         aff_hist.append(aff)  #the same item enters twice
