@@ -16,7 +16,7 @@ then conduct the rest of the pipeline.
 """
 
 from get_pycluster_data import PyclusterGraphConstructor as PGC
-power = 0.3
+power = 0.6
 
 pgc = PGC()
 pgc.users_count = 5527000

@@ -60,9 +60,9 @@ class PyclusterGraphConstructor():
                      'masterh2.adriver.ru', 'masterh4.adriver.ru', 'masterh5.adriver.ru', 'masterh7.adriver.ru',
                      'masterh6.adriver.ru', 'mh6.adriver.ru', 'mh8.adriver.ru', 'bel1.adriver.ru', 'un1.adriver.ru',
                      'cbn2.tbn.ru', 'cdn.etgdta.com', 'delivery.a.switchadhub.com',
-                     'google.ru', 'yandex.ru', 'avito.ru'}
+                     'google.ru', 'yandex.ru', 'avito.ru', 'vk.ru', 'ok.ru', 'odnoklassniki.ru'}
         self.to_exclude_soft = {'marketgid', 'adfox', 'adriver', 'betweendigital', 'adhub', 'addthis', '--p1ai',
-                                'am15.net'}
+                                'am15.net', 'adwolf', 'openstat'}
 
 
     def get_users(self, file_path=None):
@@ -261,28 +261,28 @@ class PyclusterGraphConstructor():
         print "loading domain visits statistics..."
         self.domains_total = {}
         self.domains_common = defaultdict(lambda: Counter())
+
+        def domain_passes_filters(self, domain):
+            return (domain not in self.toExclude
+                    and all([string not in domain for string in self.to_exclude_soft]))
+
         with open(self.dom_file_path, 'r') as D:
             for line in D:
                 line = line.strip().split('\t')
                 both_large_enough = 0
 
-                if int(line[2]) >= self.min_users:
+                if int(line[2]) >= self.min_users and domain_passes_filters(self, line[0]):
                     both_large_enough += 1
                     if line[0] not in self.domains_total:
                         self.domains_total[line[0]] = int(line[2])
 
-                if int(line[3]) >= self.min_users:
+                if int(line[3]) >= self.min_users and domain_passes_filters(self, line[1]):
                     both_large_enough += 1
                     if line[1] not in self.domains_total:
                         self.domains_total[line[1]] = int(line[3])
 
                 if both_large_enough == 2:
                     self.domains_common[line[0]][line[1]] = int(line[4])
-
-        domains_total_keys = filter(
-            lambda domain: (domain not in self.toExclude
-                            and all([string not in domain for string in self.to_exclude_soft])), self.domains_total)
-        self.domains_total = {k: self.domains_total[k] for k in domains_total_keys}
 
         last_slash = self.dom_file_path.rfind('/')
         old = str(self.dom_file_path)

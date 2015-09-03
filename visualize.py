@@ -298,13 +298,13 @@ def drawGraph(G, best_choice, best_clust, isolates, node_labels, edgeColor, colD
          edgeWidth, node_intensity_dict=None, node_color=None,
          log_node_size_dict=None, log_node_size_dict_iso=None,
          log_node_size=None, centralityIntensity=True, scale=None,
-         figureFormat='png'):
+         figureFormat='png', scale_factor=0.0123):
     # graph drawing
     print "\nDrawing initialization..."
     #edgesum = sum([G.edges(data=True)[i][2]['weight'] for i in range(G.size())])
     if scale==None:
         #scale = 1. / (G.size())**0.5
-        scale=0.03 * nx.density(G) / (0.0246 / 2)        # 0.0246 for non-sparsified 1285-node graph
+        scale=0.03 * nx.density(G) / scale_factor      # 0.0246 for non-sparsified 1285-node graph
         # 4 for 10121 node-graph, power=0.5, figsize=(150,150)
         # 8 for 10121 node-graph, power=0.25, figsize=(170,170)
     print scale, nx.density(G)
@@ -388,6 +388,7 @@ def read_arguments():
 
     parser.add_argument('-mul', '--multiplier', default=150)
     parser.add_argument('-pow', '--power', default=0.5)
+    parser.add_argument('-sf', '--scale_factor', type=float, default=0.0123)
 
     parser.add_argument('-li', '--labelIntensity', action='store_true', default=False) # remove
     parser.add_argument('-rw', '--reweight', action='store_true', default=False) # remove
@@ -442,7 +443,8 @@ def main():
               log_node_size_dict=nodesize[0], log_node_size_dict_iso=nodesize[1],
               log_node_size=nodesize,
               centralityIntensity=args.centrIntensity,
-              figureFormat=args.figureFormat)
+              figureFormat=args.figureFormat,
+              scale_factor=args.scale_factor)
 
 if __name__ == '__main__':
     main()
