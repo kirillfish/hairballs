@@ -11,14 +11,13 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from numpy import sign
+from datetime import datetime as dt
 
-VersionTime = str(int(time.time())/10)[3:] + "_one"
+VersionTime = dt.fromtimestamp(time.time()).strftime('%Y-%m-%d__%H_%M_%S')
 
 def loadGraph(graphPath):
     print "\nloading pickled graph..."
     Graph = pickle.load(open(graphPath, "r"))
-    #print type(Graph)
-    #print Graph.nodes()
     print "done"
     print "nodes: ", Graph.order()
     print "edges: ", Graph.size()
@@ -357,21 +356,6 @@ def drawGraph(G, best_choice, best_clust, isolates, node_labels, edgeColor, colD
 
     return 0
 
-'''
-def loadGraph(graphPath):
-def loadDomains(filepath):
-def loadClusters(filepath, alg='clara'):
-def nodeColor(k, best_choice, best_clust, centralityIntensity=True,
-              harm_centrality=None, G=None, labelIntensity=False):
-def edgeproc(G, reweight=False, multiplier=1.0):
-def nodesize(G, best_choice, best_clust, isolates,
-             centralityIntensity=True, domains_total=None,
-             multiplier=80, power=0.7):
-def drawgraph(G, best_choice, best_clust, node_labels, edgeColor, colListDict,
-         node_intensity_dict=None, node_color=None,
-         log_node_size_dict=None, log_node_size_dict_iso=None,
-         log_node_size=None, centralityIntensity=True):
-'''
 
 def read_arguments():
     parser = argparse.ArgumentParser()
